@@ -45,23 +45,17 @@ VersionInfoProductName=OpenClaw
 MinVersion=10.0
 
 [Languages]
-Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Messages]
-chinesesimplified.BeveledLabel=晴辰云 · OpenClaw 安装向导
-english.BeveledLabel=QingChenCloud · OpenClaw Setup
+BeveledLabel=QingChenCloud · OpenClaw Setup
 
 [CustomMessages]
-chinesesimplified.AddToPath=将 OpenClaw 添加到系统 PATH 环境变量（推荐）
-chinesesimplified.CreateDesktopShortcut=创建桌面快捷方式
-chinesesimplified.FinishMessage=OpenClaw 已安装完成！%n%n打开终端（PowerShell / CMD）输入 openclaw 即可使用。%n%n如需图形化管理面板，请安装 ClawPanel：%nhttps://github.com/qingchencloud/clawpanel
-english.AddToPath=Add OpenClaw to system PATH (recommended)
-english.CreateDesktopShortcut=Create desktop shortcut
-english.FinishMessage=OpenClaw has been installed!%n%nOpen a terminal (PowerShell / CMD) and type openclaw to get started.%n%nFor a GUI management panel, install ClawPanel:%nhttps://github.com/qingchencloud/clawpanel
+AddToPath=Add OpenClaw to PATH (recommended)
+FinishMessage=OpenClaw installed!%n%nOpen a terminal and type openclaw to get started.%n%nGUI panel: https://github.com/qingchencloud/clawpanel
 
 [Tasks]
-Name: "addtopath"; Description: "{cm:AddToPath}"; GroupDescription: "环境配置:"; Flags: checkedonce
+Name: "addtopath"; Description: "{cm:AddToPath}"; GroupDescription: "Configuration:"; Flags: checkedonce
 
 [Files]
 Source: "{#SourceDir}\node.exe"; DestDir: "{app}"; Flags: ignoreversion
