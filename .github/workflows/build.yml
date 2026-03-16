@@ -60,10 +60,7 @@ jobs:
           - os: windows-latest
             platform: win-x64
             archive_ext: zip
-          - os: macos-13
-            platform: mac-x64
-            archive_ext: tar.gz
-          - os: macos-14
+          - os: macos-15
             platform: mac-arm64
             archive_ext: tar.gz
           - os: ubuntu-latest
@@ -271,9 +268,6 @@ jobs:
                 "zip": "openclaw-$VERSION-win-x64.zip",
                 "installer": "openclaw-$VERSION-win-x64-setup.exe"
               },
-              "mac-x64": {
-                "archive": "openclaw-$VERSION-mac-x64.tar.gz"
-              },
               "mac-arm64": {
                 "archive": "openclaw-$VERSION-mac-arm64.tar.gz"
               },
@@ -303,7 +297,6 @@ jobs:
             |------|------|------|
             | Windows x64 | `*-win-x64-setup.exe` | **推荐** 引导式安装 |
             | Windows x64 | `*-win-x64.zip` | 绿色免安装版 |
-            | macOS x64 (Intel) | `*-mac-x64.tar.gz` | 解压即用 |
             | macOS ARM (Apple Silicon) | `*-mac-arm64.tar.gz` | 解压即用 |
             | Linux x64 | `*-linux-x64.tar.gz` | 解压即用 |
             | Linux ARM64 (树莓派等) | `*-linux-arm64.tar.gz` | 解压即用 |
