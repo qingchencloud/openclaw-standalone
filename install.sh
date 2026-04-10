@@ -6,9 +6,19 @@
 set -euo pipefail
 
 # --- Configuration ---
+EDITION="${EDITION:-zh}"  # zh=汉化版, en=官方原版
 INSTALL_DIR="${OPENCLAW_HOME:-$HOME/.openclaw-bin}"
 R2_BASE="https://dl.qrj.ai/openclaw-standalone"
 GITHUB_BASE="https://github.com/qingchencloud/openclaw-standalone/releases/download"
+
+if [ "$EDITION" = "en" ]; then
+    ARCHIVE_PREFIX="openclaw"
+    EDITION_LABEL="官方原版"
+else
+    EDITION="zh"
+    ARCHIVE_PREFIX="openclaw-zh"
+    EDITION_LABEL="汉化版"
+fi
 
 # --- Colors ---
 RED='\033[0;31m'
@@ -46,19 +56,39 @@ detect_platform() {
 
 # --- Get latest version ---
 get_latest_version() {
-    local version=""
+    local version="" json=""
     # Try R2 first
+    # 新格式: editions.<EDITION>.version；旧格式兼容: .version
     if command -v curl &>/dev/null; then
-        version=$(curl -fsSL --connect-timeout 5 "$R2_BASE/latest.json" 2>/dev/null | \
-            grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | \
-            grep -o '"[^"]*"$' | tr -d '"') || true
+        json=$(curl -fsSL --connect-timeout 5 "$R2_BASE/latest.json" 2>/dev/null) || true
+        if [ -n "$json" ]; then
+            # 先尝试新格式 editions.<EDITION>.version
+            version=$(echo "$json" | grep -o "\"$EDITION\"[^}]*\"version\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | \
+                grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' | \
+                grep -o '"[^"]*"$' | tr -d '"') || true
+            # 回退旧格式 .version（取第一个 version 字段）
+            if [ -z "$version" ]; then
+                version=$(echo "$json" | \
+                    grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | \
+                    grep -o '"[^"]*"$' | tr -d '"') || true
+            fi
+        fi
     fi
-    # Fallback: GitHub API
+    # Fallback: GitHub API（tag 基于汉化版版本号，两个版本文件都在同一个 release 下）
     if [ -z "$version" ]; then
-        version=$(curl -fsSL --connect-timeout 5 \
+        local tag_ver
+        tag_ver=$(curl -fsSL --connect-timeout 5 \
             "https://api.github.com/repos/qingchencloud/openclaw-standalone/releases/latest" 2>/dev/null | \
             grep -o '"tag_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | \
             grep -o '"[^"]*"$' | tr -d '"v') || true
+        if [ -n "$tag_ver" ]; then
+            if [ "$EDITION" = "en" ]; then
+                # 官方版版本号 = 去掉 -zh.N 后缀
+                version=$(echo "$tag_ver" | sed 's/-zh\.[0-9]*$//')
+            else
+                version="$tag_ver"
+            fi
+        fi
     fi
     if [ -z "$version" ]; then
         error "无法获取最新版本号。请检查网络连接或手动下载安装。"
@@ -92,13 +122,24 @@ main() {
 
     PLATFORM=$(detect_platform)
     info "检测到平台: $PLATFORM"
+    info "版本: $EDITION_LABEL ($EDITION)"
 
     VERSION=$(get_latest_version)
     info "最新版本: $VERSION"
 
-    ARCHIVE="openclaw-${VERSION}-${PLATFORM}.tar.gz"
-    DOWNLOAD_URL="${R2_BASE}/${VERSION}/${ARCHIVE}"
-    GITHUB_URL="${GITHUB_BASE}/v${VERSION}/${ARCHIVE}"
+    ARCHIVE="${ARCHIVE_PREFIX}-${VERSION}-${PLATFORM}.tar.gz"
+    DOWNLOAD_URL="${R2_BASE}/${EDITION}/${VERSION}/${ARCHIVE}"
+    # GitHub release tag 统一用汉化版版本号，两个版本的文件都在同一个 release 下
+    if [ "$EDITION" = "en" ]; then
+        # 需要从 R2 或 GitHub API 获取汉化版版本号作为 tag
+        GH_TAG_VER=$(curl -fsSL --connect-timeout 5 \
+            "https://api.github.com/repos/qingchencloud/openclaw-standalone/releases/latest" 2>/dev/null | \
+            grep -o '"tag_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | \
+            grep -o '"[^"]*"$' | tr -d '"') || true
+        GITHUB_URL="${GITHUB_BASE}/${GH_TAG_VER:-v${VERSION}}/${ARCHIVE}"
+    else
+        GITHUB_URL="${GITHUB_BASE}/v${VERSION}/${ARCHIVE}"
+    fi
     TMP_DIR=$(mktemp -d)
     TMP_FILE="${TMP_DIR}/${ARCHIVE}"
 
