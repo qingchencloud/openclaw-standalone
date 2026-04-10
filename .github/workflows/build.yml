@@ -488,8 +488,8 @@ jobs:
             FILENAME=$(basename "$file")
             SIZE_MB=$(( $(stat --format=%s "$file") / 1048576 ))
             echo "Uploading $FILENAME (${SIZE_MB}MB) ..."
-            if [ "$SIZE_MB" -gt 290 ]; then
-              echo "Skipping $FILENAME (${SIZE_MB}MB > 290MB wrangler limit, available in GitHub Release)"
+            if [ "$SIZE_MB" -gt 1000 ]; then
+              echo "Skipping $FILENAME (${SIZE_MB}MB > 1000MB, available in GitHub Release)"
               continue
             fi
             # Route to edition-specific R2 paths
