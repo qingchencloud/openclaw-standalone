@@ -52,12 +52,18 @@ if ($LASTEXITCODE -ne 0) {
 Pop-Location
 
 # --- 3b. Patch: ensure changelog.js has required exports (upstream bug in @mariozechner/pi-coding-agent) ---
+# NOTE: As of pi-coding-agent 0.73.0+ this file ships with valid exports.
+# We keep this as a safety net for older transitive versions.
 $changelogStub = "$BuildDir\node_modules\@mariozechner\pi-coding-agent\dist\utils\changelog.js"
-$needsPatch = -not (Test-Path $changelogStub)
-if (-not $needsPatch) {
-    $existingContent = Get-Content $changelogStub -Raw -ErrorAction SilentlyContinue
-    if ($existingContent -notmatch 'export\s+function\s+getChangelogPath') {
+$needsPatch = $false
+if (Test-Path (Split-Path $changelogStub)) {
+    if (-not (Test-Path $changelogStub)) {
         $needsPatch = $true
+    } else {
+        $existingContent = Get-Content $changelogStub -Raw -ErrorAction SilentlyContinue
+        if ($existingContent -notmatch 'export\s+function\s+getChangelogPath') {
+            $needsPatch = $true
+        }
     }
 }
 if ($needsPatch) {
@@ -69,8 +75,9 @@ export function getChangelogPath() { return null }
 export function parseChangelog() { return [] }
 export function getNewEntries() { return [] }
 '@ | Set-Content -Path $changelogStub -Encoding UTF8
+} else {
+    Write-Host "changelog.js exports OK (no patch needed)"
 }
-Write-Host "changelog.js stub is in place"
 
 # --- 4. Copy Node.js binary ---
 Write-Host "`n=== Step 4: Copying Node.js runtime ===" -ForegroundColor Cyan
@@ -133,7 +140,7 @@ Write-Host ("Cleaned up ~{0:N1} MB of unnecessary files" -f $savedMB)
 # Remove build package.json (not needed in final package)
 Remove-Item "$BuildDir\package.json" -Force -ErrorAction SilentlyContinue
 Remove-Item "$BuildDir\package-lock.json" -Force -ErrorAction SilentlyContinue
-Test-ChangelogExports $BuildDir
+# (changelog.js patch verification handled in step 3b)
 
 # --- 8. Create zip archive ---
 Write-Host "`n=== Step 8: Creating zip archive ===" -ForegroundColor Cyan

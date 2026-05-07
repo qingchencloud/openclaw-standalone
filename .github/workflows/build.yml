@@ -207,15 +207,18 @@ jobs:
           EOF
 
       # ===== Patch upstream bugs =====
-      - name: Patch missing changelog.js (upstream bug in @mariozechner/pi-coding-agent)
+      - name: Patch missing changelog.js (safety net for @mariozechner/pi-coding-agent < 0.73.0)
         shell: bash
         run: |
           STUB="build/${{ matrix.platform }}/node_modules/@mariozechner/pi-coding-agent/dist/utils/changelog.js"
           NEEDS_PATCH=false
-          if [ ! -f "$STUB" ]; then
-            NEEDS_PATCH=true
-          elif ! grep -q 'export function getChangelogPath' "$STUB" 2>/dev/null; then
-            NEEDS_PATCH=true
+          # Only check if the pi-coding-agent package is actually installed
+          if [ -d "$(dirname "$STUB")" ]; then
+            if [ ! -f "$STUB" ]; then
+              NEEDS_PATCH=true
+            elif ! grep -q 'export function getChangelogPath' "$STUB" 2>/dev/null; then
+              NEEDS_PATCH=true
+            fi
           fi
           if [ "$NEEDS_PATCH" = true ]; then
             echo "Patching: creating/replacing changelog.js stub"
@@ -225,7 +228,10 @@ jobs:
           export function parseChangelog() { return [] }
           export function getNewEntries() { return [] }
           STUBEOF
+          else
+            echo "changelog.js exports OK (no patch needed)"
           fi
+
 
       # ===== Cleanup to reduce size =====
       # IMPORTANT: Never clean files inside the openclaw package itself (openclaw/ or @qingchencloud/openclaw-zh/).

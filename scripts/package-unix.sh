@@ -71,12 +71,16 @@ npm install "$OPENCLAW_PKG" \
 popd > /dev/null
 
 # --- 3b. Patch: ensure changelog.js has required exports (upstream bug in @mariozechner/pi-coding-agent) ---
+# NOTE: As of pi-coding-agent 0.73.0+ this file ships with valid exports.
+# We keep this as a safety net for older transitive versions.
 CHANGELOG_STUB="$BUILD_DIR/node_modules/@mariozechner/pi-coding-agent/dist/utils/changelog.js"
 NEEDS_PATCH=false
-if [ ! -f "$CHANGELOG_STUB" ]; then
-    NEEDS_PATCH=true
-elif ! grep -q 'export function getChangelogPath' "$CHANGELOG_STUB" 2>/dev/null; then
-    NEEDS_PATCH=true
+if [ -d "$(dirname "$CHANGELOG_STUB")" ]; then
+    if [ ! -f "$CHANGELOG_STUB" ]; then
+        NEEDS_PATCH=true
+    elif ! grep -q 'export function getChangelogPath' "$CHANGELOG_STUB" 2>/dev/null; then
+        NEEDS_PATCH=true
+    fi
 fi
 if [ "$NEEDS_PATCH" = true ]; then
     echo "Patching: creating/replacing changelog.js stub"
@@ -86,8 +90,9 @@ export function getChangelogPath() { return null }
 export function parseChangelog() { return [] }
 export function getNewEntries() { return [] }
 EOF
+else
+    echo "changelog.js exports OK (no patch needed)"
 fi
-echo "changelog.js stub is in place"
 
 # --- 4. Copy Node.js binary ---
 echo ""
