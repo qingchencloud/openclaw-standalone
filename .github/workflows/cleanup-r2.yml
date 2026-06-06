@@ -1,0 +1,31 @@
+name: Cleanup R2 Old Versions
+
+on:
+  workflow_dispatch:
+    inputs:
+      keep_count:
+        description: 'Number of latest versions to keep per edition'
+        required: true
+        default: '3'
+      dry_run:
+        description: 'Preview deletions without deleting'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup-r2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cleanup R2 old versions
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: bash scripts/cleanup-r2.sh "${{ inputs.keep_count }}"
