@@ -11,8 +11,12 @@ on:
           - zh
           - en
         default: 'both'
-      openclaw_version:
-        description: 'OpenClaw version to package (leave empty for latest)'
+      openclaw_zh_version:
+        description: 'Chinese package version (leave empty for npm latest)'
+        required: false
+        default: ''
+      openclaw_en_version:
+        description: 'Official package version (leave empty for npm latest)'
         required: false
         default: ''
       upload_r2:
@@ -41,26 +45,39 @@ jobs:
       - name: Resolve OpenClaw versions
         id: ver
         run: |
-          INPUT_VER="${{ github.event.inputs.openclaw_version }}"
-          REGISTRY="${{ env.NPM_REGISTRY }}"
+          set -euo pipefail
+          OFFICIAL_REGISTRY="https://registry.npmjs.org"
+          MIRROR_REGISTRY="${{ env.NPM_REGISTRY }}"
 
-          # Chinese edition
-          if [ -n "$INPUT_VER" ]; then
-            echo "version_zh=$INPUT_VER" >> $GITHUB_OUTPUT
-          else
-            VER=$(npm view "@qingchencloud/openclaw-zh" version --registry "$REGISTRY" 2>/dev/null || \
-                  npm view "@qingchencloud/openclaw-zh" version 2>/dev/null || echo "unknown")
-            echo "version_zh=$VER" >> $GITHUB_OUTPUT
+          resolve_version() {
+            local package_name="$1"
+            local requested_version="$2"
+            local resolved_version
+            if [ -n "$requested_version" ]; then
+              resolved_version="$requested_version"
+            else
+              resolved_version=$(npm view "$package_name" version --registry "$OFFICIAL_REGISTRY" 2>/dev/null || \
+                npm view "$package_name" version --registry "$MIRROR_REGISTRY" 2>/dev/null)
+            fi
+
+            local published_version
+            published_version=$(npm view "${package_name}@${resolved_version}" version --registry "$OFFICIAL_REGISTRY")
+            if [ "$published_version" != "$resolved_version" ]; then
+              echo "Version validation failed for ${package_name}: expected ${resolved_version}, got ${published_version}" >&2
+              exit 1
+            fi
+            printf '%s' "$resolved_version"
+          }
+
+          VER_ZH=$(resolve_version "@qingchencloud/openclaw-zh" "${{ github.event.inputs.openclaw_zh_version }}")
+          VER_EN=$(resolve_version "openclaw" "${{ github.event.inputs.openclaw_en_version }}")
+          if [ "${VER_ZH%%-zh.*}" != "$VER_EN" ]; then
+            echo "Chinese and official versions do not share the same upstream base: zh=$VER_ZH, en=$VER_EN" >&2
+            exit 1
           fi
 
-          # Official edition
-          if [ -n "$INPUT_VER" ]; then
-            echo "version_en=$INPUT_VER" >> $GITHUB_OUTPUT
-          else
-            VER=$(npm view "openclaw" version --registry "$REGISTRY" 2>/dev/null || \
-                  npm view "openclaw" version 2>/dev/null || echo "unknown")
-            echo "version_en=$VER" >> $GITHUB_OUTPUT
-          fi
+          echo "version_zh=$VER_ZH" >> $GITHUB_OUTPUT
+          echo "version_en=$VER_EN" >> $GITHUB_OUTPUT
 
           cat $GITHUB_OUTPUT
 
@@ -169,6 +186,22 @@ jobs:
             --registry "${{ env.NPM_REGISTRY }}" \
             --include=optional
           rm -f package.json package-lock.json
+
+      - name: Validate installed OpenClaw CLI
+        shell: bash
+        working-directory: build/${{ matrix.platform }}
+        run: |
+          if [ "${{ matrix.edition }}" = "zh" ]; then
+            PACKAGE_DIR="node_modules/@qingchencloud/openclaw-zh"
+          else
+            PACKAGE_DIR="node_modules/openclaw"
+          fi
+          INSTALLED_VERSION=$(node -p "require('./${PACKAGE_DIR}/package.json').version")
+          if [ "$INSTALLED_VERSION" != "${{ env.PKG_VERSION }}" ]; then
+            echo "Installed version mismatch: expected ${{ env.PKG_VERSION }}, got $INSTALLED_VERSION" >&2
+            exit 1
+          fi
+          node "${PACKAGE_DIR}/openclaw.mjs" --version
 
       - name: Copy Node.js binary (Unix)
         if: runner.os != 'Windows'
