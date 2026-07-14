@@ -81,7 +81,7 @@ jobs:
 
           cat $GITHUB_OUTPUT
 
-  # --- Build matrix: 2 editions × 4 platforms = 8 parallel builds ---
+  # --- Build matrix: 2 editions × 5 platforms = 10 parallel builds ---
   build:
     needs: resolve-version
     strategy:
@@ -96,6 +96,11 @@ jobs:
             pkg: '@qingchencloud/openclaw-zh'
           - os: macos-15
             platform: mac-arm64
+            archive_ext: tar.gz
+            edition: zh
+            pkg: '@qingchencloud/openclaw-zh'
+          - os: macos-15-intel
+            platform: mac-x64
             archive_ext: tar.gz
             edition: zh
             pkg: '@qingchencloud/openclaw-zh'
@@ -117,6 +122,11 @@ jobs:
             pkg: 'openclaw'
           - os: macos-15
             platform: mac-arm64
+            archive_ext: tar.gz
+            edition: en
+            pkg: 'openclaw'
+          - os: macos-15-intel
+            platform: mac-x64
             archive_ext: tar.gz
             edition: en
             pkg: 'openclaw'
@@ -417,6 +427,42 @@ jobs:
             -exec cp {} release/ \;
           ls -lh release/
 
+      - name: Validate release asset completeness
+        run: |
+          set -euo pipefail
+          VER_ZH="${{ needs.resolve-version.outputs.version_zh }}"
+          VER_EN="${{ needs.resolve-version.outputs.version_en }}"
+          MISSING=0
+          EXPECTED=(
+            "openclaw-zh-$VER_ZH-win-x64.zip"
+            "openclaw-zh-$VER_ZH-win-x64-setup.exe"
+            "openclaw-zh-$VER_ZH-mac-arm64.tar.gz"
+            "openclaw-zh-$VER_ZH-mac-x64.tar.gz"
+            "openclaw-zh-$VER_ZH-linux-x64.tar.gz"
+            "openclaw-zh-$VER_ZH-linux-arm64.tar.gz"
+            "openclaw-$VER_EN-win-x64.zip"
+            "openclaw-$VER_EN-win-x64-setup.exe"
+            "openclaw-$VER_EN-mac-arm64.tar.gz"
+            "openclaw-$VER_EN-mac-x64.tar.gz"
+            "openclaw-$VER_EN-linux-x64.tar.gz"
+            "openclaw-$VER_EN-linux-arm64.tar.gz"
+          )
+          for filename in "${EXPECTED[@]}"; do
+            if [ ! -f "release/$filename" ]; then
+              echo "MISSING release asset: $filename" >&2
+              MISSING=$((MISSING + 1))
+            fi
+            if [[ "$filename" == *.zip || "$filename" == *.tar.gz ]]; then
+              if [ ! -f "release/$filename.sha256" ]; then
+                echo "MISSING checksum: $filename.sha256" >&2
+                MISSING=$((MISSING + 1))
+              fi
+            fi
+          done
+          if [ "$MISSING" -ne 0 ]; then
+            exit 1
+          fi
+
       - name: Generate latest.json manifest
         run: |
           VER_ZH="${{ needs.resolve-version.outputs.version_zh }}"
@@ -431,6 +477,7 @@ jobs:
                 "downloads": {
                   "win-x64": { "zip": "openclaw-zh-$VER_ZH-win-x64.zip", "installer": "openclaw-zh-$VER_ZH-win-x64-setup.exe" },
                   "mac-arm64": { "archive": "openclaw-zh-$VER_ZH-mac-arm64.tar.gz" },
+                  "mac-x64": { "archive": "openclaw-zh-$VER_ZH-mac-x64.tar.gz" },
                   "linux-x64": { "archive": "openclaw-zh-$VER_ZH-linux-x64.tar.gz" },
                   "linux-arm64": { "archive": "openclaw-zh-$VER_ZH-linux-arm64.tar.gz" }
                 }
@@ -441,6 +488,7 @@ jobs:
                 "downloads": {
                   "win-x64": { "zip": "openclaw-$VER_EN-win-x64.zip", "installer": "openclaw-$VER_EN-win-x64-setup.exe" },
                   "mac-arm64": { "archive": "openclaw-$VER_EN-mac-arm64.tar.gz" },
+                  "mac-x64": { "archive": "openclaw-$VER_EN-mac-x64.tar.gz" },
                   "linux-x64": { "archive": "openclaw-$VER_EN-linux-x64.tar.gz" },
                   "linux-arm64": { "archive": "openclaw-$VER_EN-linux-arm64.tar.gz" }
                 }
@@ -467,6 +515,7 @@ jobs:
             | Windows x64 | `openclaw-zh-*-win-x64-setup.exe` | **推荐** 引导安装 |
             | Windows x64 | `openclaw-zh-*-win-x64.zip` | 绿色免安装 |
             | macOS ARM64 | `openclaw-zh-*-mac-arm64.tar.gz` | Apple Silicon |
+            | macOS x64 | `openclaw-zh-*-mac-x64.tar.gz` | Intel Mac |
             | Linux x64 | `openclaw-zh-*-linux-x64.tar.gz` | 解压即用 |
             | Linux ARM64 | `openclaw-zh-*-linux-arm64.tar.gz` | 树莓派等 |
 
@@ -477,6 +526,7 @@ jobs:
             | Windows x64 | `openclaw-*-win-x64-setup.exe` | Guided installer |
             | Windows x64 | `openclaw-*-win-x64.zip` | Portable |
             | macOS ARM64 | `openclaw-*-mac-arm64.tar.gz` | Apple Silicon |
+            | macOS x64 | `openclaw-*-mac-x64.tar.gz` | Intel Mac |
             | Linux x64 | `openclaw-*-linux-x64.tar.gz` | Extract & run |
             | Linux ARM64 | `openclaw-*-linux-arm64.tar.gz` | Raspberry Pi etc. |
 
@@ -529,6 +579,7 @@ jobs:
             echo "Uploading $FILENAME (${SIZE_MB}MB) ..."
             if [ "$SIZE_MB" -gt 1000 ]; then
               echo "Skipping $FILENAME (${SIZE_MB}MB > 1000MB, available in GitHub Release)"
+              FAILED=$((FAILED + 1))
               continue
             fi
             # Route to edition-specific R2 paths
@@ -545,6 +596,10 @@ jobs:
             fi
           done
           echo "Upload complete (skipped/failed: $FAILED)"
+          if [ "$FAILED" -ne 0 ]; then
+            echo "R2 upload incomplete; latest.json will not be updated" >&2
+            exit 1
+          fi
 
       - name: Upload latest.json to R2
         env:

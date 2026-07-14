@@ -66,6 +66,7 @@ curl -fsSL https://dl.qrj.ai/openclaw/install.sh | bash
 
 Supported platforms:
 - macOS ARM64 (Apple Silicon / M1-M4)
+- macOS x64 (Intel)
 - Linux x64
 - Linux ARM64 (Raspberry Pi 4/5, ARM servers)
 
@@ -87,6 +88,7 @@ Supported platforms:
 | Windows | x64 | `.exe` installer | Guided setup, auto-configures PATH |
 | Windows | x64 | `.zip` | Portable, extract & run |
 | macOS | ARM64 (Apple Silicon) | `.tar.gz` | Extract & run |
+| macOS | x64 (Intel) | `.tar.gz` | Extract & run |
 | Linux | x64 | `.tar.gz` | Extract & run |
 | Linux | ARM64 | `.tar.gz` | Raspberry Pi, ARM servers |
 
@@ -97,6 +99,7 @@ Supported platforms:
 | Windows | x64 | `.exe` installer | Guided setup |
 | Windows | x64 | `.zip` | Portable |
 | macOS | ARM64 (Apple Silicon) | `.tar.gz` | Extract & run |
+| macOS | x64 (Intel) | `.tar.gz` | Extract & run |
 | Linux | x64 | `.tar.gz` | Extract & run |
 | Linux | ARM64 | `.tar.gz` | Raspberry Pi, ARM servers |
 

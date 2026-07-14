@@ -66,6 +66,7 @@ curl -fsSL https://dl.qrj.ai/openclaw/install.sh | EDITION=en bash
 
 支持的平台：
 - macOS ARM64 (Apple Silicon / M1-M4)
+- macOS x64 (Intel)
 - Linux x64
 - Linux ARM64 (树莓派 4/5、ARM 服务器)
 
@@ -87,6 +88,7 @@ curl -fsSL https://dl.qrj.ai/openclaw/install.sh | EDITION=en bash
 | Windows | x64 | `.exe` 安装包 | 引导式安装，自动配置 PATH |
 | Windows | x64 | `.zip` | 绿色免安装，解压即用 |
 | macOS | ARM64 (Apple Silicon) | `.tar.gz` | 解压即用 |
+| macOS | x64 (Intel) | `.tar.gz` | 解压即用 |
 | Linux | x64 | `.tar.gz` | 解压即用 |
 | Linux | ARM64 | `.tar.gz` | 树莓派、ARM 服务器 |
 
@@ -97,6 +99,7 @@ curl -fsSL https://dl.qrj.ai/openclaw/install.sh | EDITION=en bash
 | Windows | x64 | `.exe` installer | Guided setup |
 | Windows | x64 | `.zip` | Portable |
 | macOS | ARM64 (Apple Silicon) | `.tar.gz` | Extract & run |
+| macOS | x64 (Intel) | `.tar.gz` | Extract & run |
 | Linux | x64 | `.tar.gz` | Extract & run |
 | Linux | ARM64 | `.tar.gz` | Raspberry Pi, ARM servers |
 
